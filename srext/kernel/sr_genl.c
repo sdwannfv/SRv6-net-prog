@@ -584,35 +584,35 @@ static struct genl_ops nvf_genl_ops[] = {
     {
         .cmd = SR_C_ADD,
         .flags = 0,
-        .policy = sr_genl_policy,
+//        .policy = sr_genl_policy,
         .doit = sr_genl_dispatcher,
         .dumpit = NULL,
     },
     {
         .cmd = SR_C_DEL,
         .flags = 0,
-        .policy = sr_genl_policy,
+//        .policy = sr_genl_policy,
         .doit = sr_genl_dispatcher,
         .dumpit = NULL,
     },
     {
         .cmd = SR_C_SHOW,
         .flags = 0,
-        .policy = sr_genl_policy,
+//        .policy = sr_genl_policy,
         .doit = sr_genl_dispatcher,
         .dumpit = NULL,
     },
     {
         .cmd = SR_C_FLUSH,
         .flags = 0,
-        .policy = sr_genl_policy,
+//        .policy = sr_genl_policy,
         .doit = sr_genl_dispatcher,
         .dumpit = NULL,
     },
     {
         .cmd = SR_C_CLEAR,
         .flags = 0,
-        .policy = sr_genl_policy,
+//        .policy = sr_genl_policy,
         .doit = sr_genl_dispatcher,
         .dumpit = NULL,
     }
@@ -627,6 +627,7 @@ int sr_genl_register()
     sr_gnl_family.n_ops     = ARRAY_SIZE(nvf_genl_ops);
     sr_gnl_family.mcgrps    = NULL;
     sr_gnl_family.n_mcgrps  = 0;
+    sr_gnl_family.policy    = sr_genl_policy;
 
     rc = genl_register_family(&sr_gnl_family);
 
