@@ -2357,6 +2357,8 @@ unsigned int sr_pre_routing(void* priv, struct sk_buff * skb,
     struct icmp6hdr* icmpv6h;
     struct sid6_info *s6;
     struct sdev_info *sdev;
+    int srhoff = 0, srhproto;
+    struct ipv6_rt_hdr* rth_hdr;
 
     rcu_read_lock();
     sdev = sdev_lookup(skb->dev->name);
@@ -2373,6 +2375,15 @@ unsigned int sr_pre_routing(void* priv, struct sk_buff * skb,
 
 lookup:
     iph = ipv6_hdr(skb);
+
+    srhproto = ipv6_find_hdr(skb, &srhoff, NEXTHDR_ROUTING, NULL, NULL);
+    if (srhproto != NEXTHDR_ROUTING)
+        goto exit_accept;
+
+    rth_hdr = (struct ipv6_rt_hdr*) (skb->data + srhoff);
+    if (rth_hdr->type != IPV6_SRCRT_TYPE_4)
+        goto exit_accept;
+
     s6 = sid_lookup(iph->daddr);
     if (s6 == NULL)
         goto exit_accept;
