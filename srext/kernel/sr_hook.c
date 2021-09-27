@@ -1053,6 +1053,57 @@ end:
 EXPORT_SYMBOL(add_end_ad6);
 
 /**
+ * add_end_dt4()
+ * Adds a localsid with End.DT4 behavior to my localsid table
+ * [CLI]... "srconf localsid add SID end.dt4"
+ * @sid: SRv6 SID
+ * @behavior: SRv6 behavior
+ */
+
+int add_end_dt4(const char *sid, const int behavior)
+{
+    int ret = 0;
+    u32 hash_key;
+    struct in6_addr bsid;
+    struct sid6_info *s6;
+    char * err_msg = "add_end - ";
+
+    if (in6_pton(sid, strlen(sid), bsid.s6_addr, -1, NULL) != 1) {
+        debug_err("%s sid is not valid inet6 address \n", err_msg);
+        return INVSID;
+    }
+
+    if (sid_lookup(bsid) != NULL) {
+        debug_err("%s sid exists in my localsid table \n", err_msg);
+        return SIDEXIST;
+    }
+
+    s6 = kmalloc(sizeof(*s6), GFP_ATOMIC);
+    if (!s6) {
+        debug_err("%s could not allocate required memory \n", err_msg);
+        return NOMEM;
+    }
+
+    memcpy(&s6->sid, &bsid, sizeof(struct in6_addr));
+    s6->behavior = behavior;
+    s6->oif = NULL;
+    s6->iif = NULL;
+    s6->good_pkts = 0;
+    s6->good_bytes = 0;
+    s6->bad_pkts = 0;
+    s6->bad_bytes = 0;
+    s6->func = end_dt4;
+
+    hash_key = ipv6_addr_hash(&bsid);
+    write_lock_bh(&sr_rwlock);
+    hash_add_rcu(sid_tbl, &s6->hnode, hash_key);
+    write_unlock_bh(&sr_rwlock);
+    return ret;
+}
+EXPORT_SYMBOL(add_end_dt4);
+
+
+/**
  * del_sdev()
  * Deletes an entry from srdev table
  * used by del_sid() to for some SRv6 behavior
@@ -1317,6 +1368,10 @@ int show_localsid_all(char *dst, size_t size)
                 print_nh_mac(s6->nh_mac, dst);
             sprintf(dst + strlen(dst), "\t OIF     :        %s \n", s6->oif);
             sprintf(dst + strlen(dst), "\t IIF     :        %s \n", s6->iif);
+            break;
+
+        case END_DT4_CODE:
+            sprintf(dst + strlen(dst), "\t Behavior:        %s \n", END_DT4);
             break;
         }
 
@@ -2124,6 +2179,76 @@ drop:
     kfree(skb);
     return -1;
 }
+
+/**
+ * end_dt4()
+ * SRv6 Endpoint with decapsulation and IPv4 receive
+ * @skb: packet buffer
+ * @s6 : localsid table entry
+ */
+
+int end_dt4(struct sk_buff * skb, struct sid6_info * s6)
+{
+    int  inneroff = 0, innerproto;
+    int  srhoff = 0, srhproto;
+    struct ipv6hdr* ip6h;
+    struct ipv6_sr_hdr* srh;
+    struct ipv6_rt_hdr* rth_hdr;
+    struct iphdr *iph;
+    int err;
+    char * err_msg = "End.DT4 - ";
+
+    ip6h = ipv6_hdr(skb);
+    if (ip6h->hop_limit <= 1) {
+        debug_err("%s packet can not be forwarded, hop_limit is <= 1, dropped.\n", err_msg);
+        update_counters(s6, skb->len, 0);
+        goto drop;
+    }
+    ip6h->hop_limit --;
+
+    innerproto = ipv6_find_hdr(skb, &inneroff, -1, NULL, NULL);
+    if (innerproto != IPPROTO_IPIP) {
+        debug_err("%s Packet has no inner IPv4 header, dropped.\n", err_msg);
+        update_counters(s6, skb->len, 0);
+        goto drop;
+    }
+
+    srhproto = ipv6_find_hdr(skb, &srhoff, NEXTHDR_ROUTING, NULL, NULL);
+    if (srhproto != NEXTHDR_ROUTING)
+        goto decap;
+
+    rth_hdr = (struct ipv6_rt_hdr*) (skb->data + srhoff);
+    if (rth_hdr->type != IPV6_SRCRT_TYPE_4) {
+        debug_err("%s The routing extension header is not SRH, dropped.\n", err_msg);
+        update_counters(s6, skb->len, 0);
+        goto drop;
+    }
+
+    srh = (struct ipv6_sr_hdr*) (skb->data + srhoff);
+    if ( srh->segments_left != 0 ) {
+        debug_err("%s segments_left must be zero, dropped.\n", err_msg);
+        update_counters(s6, skb->len, 0);
+        goto drop;
+    }
+
+decap:
+    if (decap4(skb, s6, inneroff, srhoff, 0) != 0)
+        goto drop;
+
+    update_counters(s6, skb->len, 1);
+    iph = ip_hdr(skb);
+    err = ip_route_input(skb, iph->daddr, iph->saddr, 0, skb->dev);
+    if (err)
+        goto drop;
+
+    dst_input(skb);
+    return 0;
+
+drop:
+    kfree(skb);
+    return -1;
+}
+
 
 /**
  * end_am_masq()

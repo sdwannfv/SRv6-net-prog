@@ -501,13 +501,14 @@ static int usage_localsid(void)
             "       srconf localsid del SID \n"
             "       srconf localsid add SID BEHAVIOUR \n"
             "BEHAVIOUR:= { end | \n"
+            "              end.dt4 | \n"
             "              end.dx2 TARGETIF | \n"
             "              end.dx4 NEXTHOP4 TARGETIF | \n"
             "              { end.x | end.dx6 } NEXTHOP6 TARGETIF | \n"
             "              { end.ad4 | end.ead4 } NEXTHOP4 TARGETIF SOURCEIF | \n"
             "              { end.am | end.ad6 | end.ead6 } NEXTHOP6 TARGETIF SOURCEIF | \n"
-            "              end.as4 NEXTHOP4 TARGETIF SOURCEIF src ADDR segs SIDLIST left SEGMENTLEFT }\n"
-            "              end.as6 NEXTHOP6 TARGETIF SOURCEIF src ADDR segs SIDLIST left SEGMENTLEFT |\n"
+            "              end.as4 NEXTHOP4 TARGETIF SOURCEIF src ADDR segs SIDLIST left SEGMENTLEFT | \n"
+            "              end.as6 NEXTHOP6 TARGETIF SOURCEIF src ADDR segs SIDLIST left SEGMENTLEFT } \n"
             "NEXTHOP4:= { ip IPv4-ADDR | mac MAC-ADDR }\n"
             "NEXTHOP6:= { ip IPv6-ADDR | mac MAC-ADDR }\n");
     return 0;
@@ -830,6 +831,25 @@ int add_end_as4(int argc, char **argv)
 }
 
 /**
+ * add_end_dt4(): used by srconf to add a new SID with End.DT4 behavior
+ * End.DT4 behavior doesn't require any arguments ???
+ * Actually end.dt4 should support netns/vrf id which to foward packets
+*/
+
+int add_end_dt4(int argc, char **argv)
+{
+    int ret = -1;
+    if (argc > 5) {
+        printf("Too many parameters. Please try \"srconf localsid help\" \n");
+        goto end;
+    }
+
+end:
+    ret = send_add_command();
+    return ret;
+}
+
+/**
  * do_add(): handles "srconf localsid add SID BEHAVIOR ... " command
  * Based on the behavior a different call is invoked
 */
@@ -877,6 +897,8 @@ int do_add(int argc, char **argv)
     else if (strcmp(argv[4], END_AS6) == 0)
         ret = add_end_as6(argc, argv);
 
+    else if (strcmp(argv[4], END_DT4) == 0)
+        ret = add_end_dt4(argc, argv);
 
     else
         printf("SRv6 behavior \"%s\" is not supported\n" , argv[4] );

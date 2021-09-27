@@ -216,6 +216,9 @@ static int add_localsid(struct sr_param attr, struct genl_info *info)
         else if (strncmp(attr.func, END_AS6, strlen(attr.func)) == 0)
             behavior = END_AS6_CODE;
 
+        else if (strncmp(attr.func, END_DT4, strlen(attr.func)) == 0)
+            behavior = END_DT4_CODE;
+
         switch (behavior) {
         case END_CODE:
             ret = add_end(attr.sid, behavior);
@@ -249,6 +252,11 @@ static int add_localsid(struct sr_param attr, struct genl_info *info)
             if (attr.iif != NULL && attr.oif != NULL)
                 ret = add_end_ad4(attr.sid, behavior, attr.next, attr.mac->oct, attr.oif, attr.iif);
             break;
+
+        case END_DT4_CODE:
+            ret = add_end_dt4(attr.sid, behavior);
+            break;
+
         default:
             ret = behavior;
             break;

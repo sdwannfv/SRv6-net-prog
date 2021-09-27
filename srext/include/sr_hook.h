@@ -97,9 +97,13 @@ int add_end_ad6(const char *sid, const int behavior, const char *next,
 int add_end_x(const char *sid, const int behavior, const char *next,
               const unsigned char *mac, const char *oif);
 
-/* End.DX4O*/
+/* End.DX4 */
 int add_end_dx4(const char *sid, const int behavior, const char *next,
                 const unsigned char *mac, const char *oif);
+
+/* End.DXT */
+int add_end_dt4(const char *sid, const int behavior);
+
 
 /* ADD to SRDEV*/
 int sdev_add(char* ifname, int behavior, void *buf , int size, int srhoff);
@@ -156,6 +160,9 @@ int end_ad4(struct sk_buff* skb, struct sid6_info * s6);
 
 /* End.EAD4 */
 int end_ead4(struct sk_buff* skb, struct sid6_info * s6);
+
+/* End.DT4 */
+int end_dt4(struct sk_buff* skb, struct sid6_info * s6);
 
 /* End.AM */
 int end_am_masq(struct sk_buff * skb, struct sid6_info *s6);

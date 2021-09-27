@@ -50,6 +50,8 @@
 #define END_AS6      	"end.as6"
 #define END_EAD4 		"end.ead4"
 #define END_EAD6 		"end.ead6"
+#define END_DT4 		"end.dt4"
+
 
 /**
  * BEHAVIORS CODE
@@ -67,6 +69,8 @@
 #define END_AS6_CODE 		10
 #define END_EAD4_CODE 		13
 #define END_EAD6_CODE 		14
+#define END_DT4_CODE 		15
+
 
 enum SR_GNL_COMMANDS {
 	SR_C_ECHO,
